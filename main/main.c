@@ -11,44 +11,90 @@
 #include "mlx90614_driver.h"
 #include "ads1115_driver.h"
 
+static const char *TAG = "MAIN";
+
+// ====== Variables globales ======
 float temp1, temp2, temp3;
 float v0, v1, v2, v3;
+
+// Semáforo global para proteger el bus I2C
+SemaphoreHandle_t i2c_mutex = NULL;
+
+// ====== MLX90614 con protección I2C ======
+void mlx90614_task_safe(void *pvParameter)
+{
+    mlx90614_t *sensor = (mlx90614_t *)pvParameter;
+
+    while (1)
+    {
+        // Tomar control del bus
+        if (xSemaphoreTake(i2c_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
+        {
+            float temp = read_mlx90614(sensor->addr);
+            *(sensor->temperature_var) = temp;
+            xSemaphoreGive(i2c_mutex); // Liberar bus
+        }
+
+        ESP_LOGI(sensor->tag, "Temp = %.2f °C", *(sensor->temperature_var));
+        vTaskDelay(pdMS_TO_TICKS(500)); // tiempo entre lecturas
+    }
+}
+
+// ====== ADS1115 con protección I2C ======
+void ads1115_task_safe(void *pvParameter)
+{
+    while (1)
+    {
+        if (xSemaphoreTake(i2c_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
+        {
+            v0 = ads_read_channel(0);
+            vTaskDelay(pdMS_TO_TICKS(20));
+            v1 = ads_read_channel(1);
+            vTaskDelay(pdMS_TO_TICKS(20));
+            v2 = ads_read_channel(2);
+            vTaskDelay(pdMS_TO_TICKS(20));
+            v3 = ads_read_channel(3);
+            xSemaphoreGive(i2c_mutex);
+        }
+
+        ESP_LOGI("ADS1115", "AIN0=%.3f | AIN1=%.3f | AIN2=%.3f | AIN3=%.3f", v0, v1, v2, v3);
+        vTaskDelay(pdMS_TO_TICKS(500));
+    }
+}
+
 
 void app_main()
 {
     ESP_ERROR_CHECK(i2c_master_init());
     
-    start_mlx_tasks(); 
-
-     // ====== MLX90614 ======
-    static mlx90614_t mlx_sensors[] = {
-        { .addr = 0x5A, .temperature_var = &temp1, .tag = "MLX_1" },
-        { .addr = 0x5B, .temperature_var = &temp2, .tag = "MLX_2" },
-        { .addr = 0x5C, .temperature_var = &temp3, .tag = "MLX_3" }
-    };
-
-    for (int i = 0; i < 3; i++) {
-        xTaskCreate(mlx90614_task, mlx_sensors[i].tag, 4096, &mlx_sensors[i], 5, NULL);
+    // Crear semáforo mutex
+    i2c_mutex = xSemaphoreCreateMutex();
+    if (i2c_mutex == NULL)
+    {
+        ESP_LOGE(TAG, "Error al crear el semáforo I2C");
+        return;
     }
 
-        // ====== ADS1115 ======
-    // static ads1115_channel_t ads_channels[] = {
-    //     { .channel = 0, .voltage_var = &v0, .tag = "ADS_CH0" },
-    //     { .channel = 1, .voltage_var = &v1, .tag = "ADS_CH1" },
-    //     { .channel = 2, .voltage_var = &v2, .tag = "ADS_CH2" },
-    //     { .channel = 3, .voltage_var = &v3, .tag = "ADS_CH3" }
-    // };
+    // ====== MLX90614 ======
+    static mlx90614_t mlx_sensors[] = {
+        {.addr = 0x5A, .temperature_var = &temp1, .tag = "MLX_1"},
+        {.addr = 0x5B, .temperature_var = &temp2, .tag = "MLX_2"},
+        {.addr = 0x5C, .temperature_var = &temp3, .tag = "MLX_3"}
+    };
 
-    // for (int i = 0; i < 4; i++) {
-    //     xTaskCreate(ads1115_task, ads_channels[i].tag, 4096, &ads_channels[i], 5, NULL);
-    // }
+    for (int i = 0; i < 3; i++)
+    {
+        xTaskCreate(mlx90614_task_safe, mlx_sensors[i].tag, 4096, &mlx_sensors[i], 5, NULL);
+    }
 
-    
+    // ====== ADS1115 ======
+    xTaskCreate(ads1115_task_safe, "ADS_TASK", 4096, NULL, 5, NULL);
 
-    // Inicializar entradas digitales
+    // ====== Entradas digitales ======
     digital_inputs_init();
     digital_inputs_start_task();
-    
+
+    // ====== DS18B20 ======
     ds18b20_sensor_init();
     ds18b20_sensor_start_all();
     

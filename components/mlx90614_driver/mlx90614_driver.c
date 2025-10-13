@@ -1,18 +1,44 @@
-#include "mlx90614_driver.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "esp_log.h"
 
-static const char *TAG_MLX = "MLX90614";
+#include "i2c_driver.h"
 
-esp_err_t mlx90614_read_temp(uint8_t addr, float *temp)
+#include "mlx90614_driver.h"
+
+static const char *TAG = "MLX90614";
+
+// #define I2C_SLAVE_ADDR 0x68
+#define MLX1_ADDR 0x5A
+#define MLX2_ADDR 0x5B
+#define MLX3_ADDR 0x5C
+
+#define REG_TEMP_AMB 0x06 // Registro temperatura objeto 1
+#define REG_TEMP_OBJ 0x07
+
+#define MLX90614_SCALE 0.02f  // Factor de conversión (0.02 °K por bit)
+#define MLX90614_OFFSET 273.15f // Para convertir K a °C
+
+float read_mlx90614(uint8_t addr)
 {
     uint8_t reg = REG_TEMP_OBJ;
-    uint8_t data[3];
-    esp_err_t err = i2c_master_write_read_device(I2C_MASTER_NUM, addr, &reg, 1, data, 3, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-    if (err != ESP_OK) return err;
+    uint8_t data[3] = {0};
 
-    uint16_t raw = (data[1] << 8) | data[0];
-    *temp = (raw * 0.02) - 273.15;
-    return ESP_OK;
+    esp_err_t ret = i2c_master_write_read_device(I2C_MASTER_NUM,
+                                                 addr,
+                                                 &reg,
+                                                 1,
+                                                 data,
+                                                 3,
+                                                 pdMS_TO_TICKS(I2C_TIMEOUT_MS));
+    if (ret != ESP_OK) {
+        ESP_LOGW(TAG, "Error I2C addr=0x%02X", addr);
+        return -1000.0f; // Valor de error
+    }
+
+    uint16_t raw = ((uint16_t)data[1] << 8) | data[0];
+    float tempC = (raw * MLX90614_SCALE) - MLX90614_OFFSET;
+    return tempC;
 }
 
 void mlx90614_task(void *pvParameter)
@@ -22,13 +48,10 @@ void mlx90614_task(void *pvParameter)
 
     while (1)
     {
-        if (mlx90614_read_temp(sensor->addr, &temp) == ESP_OK) {
-            *(sensor->temperature_var) = temp;
-            ESP_LOGI(sensor->tag, "T = %.2f °C", temp);
-        } else {
-            ESP_LOGE(sensor->tag, "Error al leer MLX90614");
-        }
+        float temp = read_mlx90614(sensor->addr);
+        *(sensor->temperature_var) = temp;
 
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        ESP_LOGI(sensor->tag, "Temp = %.2f °C", temp);
+        vTaskDelay(pdMS_TO_TICKS(500));  // Lectura cada 0.5 s
     }
 }
