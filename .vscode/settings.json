@@ -28,6 +28,9 @@
     "gpio.h": "c",
     "esp_err.h": "c",
     "ds18b20_driver.h": "c",
-    "ds18x20.h": "c"
+    "ds18x20.h": "c",
+    "ads1115_driver.h": "c",
+    "mlx90614_driver.h": "c",
+    "stdio.h": "c"
   }
 }

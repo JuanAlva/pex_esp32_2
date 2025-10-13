@@ -82,6 +82,8 @@ C:/Users/juan_/pex_esp32_2/build/esp-idf/wifi_provisioning/libwifi_provisioning.
 C:/Users/juan_/pex_esp32_2/build/esp-idf/esp-idf-lib__onewire/libesp-idf-lib__onewire.a
 C:/Users/juan_/pex_esp32_2/build/esp-idf/ds18x20/libds18x20.a
 C:/Users/juan_/pex_esp32_2/build/esp-idf/main/libmain.a
+C:/Users/juan_/pex_esp32_2/build/esp-idf/i2c_driver/libi2c_driver.a
+C:/Users/juan_/pex_esp32_2/build/esp-idf/ads1115_driver/libads1115_driver.a
 C:/Users/juan_/pex_esp32_2/build/esp-idf/di_driver/libdi_driver.a
 C:/Users/juan_/pex_esp32_2/build/esp-idf/ds18b20_driver/libds18b20_driver.a
-C:/Users/juan_/pex_esp32_2/build/esp-idf/i2c_driver/libi2c_driver.a
+C:/Users/juan_/pex_esp32_2/build/esp-idf/mlx90614_driver/libmlx90614_driver.a
