@@ -569,7 +569,7 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("C:/Users/juan_/pex_esp32_2/build/esp-idf/di_driver/cmake_install.cmake")
+  include("C:/Users/juan_/pex_esp32_2/build/esp-idf/digital_inputs/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
@@ -580,5 +580,10 @@ endif()
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
   include("C:/Users/juan_/pex_esp32_2/build/esp-idf/mlx90614_driver/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/juan_/pex_esp32_2/build/esp-idf/uart_driver/cmake_install.cmake")
 endif()
 

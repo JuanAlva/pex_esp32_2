@@ -7,15 +7,16 @@
 
 #include "digital_inputs.h"
 #include "ds18b20_driver.h"
-#include "i2c_driver.h"   // Librería personalizada donde defines ads_read_channel y read_mlx90614
+#include "i2c_driver.h"   // Librería personalizada ads_read_channel y read_mlx90614
 #include "mlx90614_driver.h"
 #include "ads1115_driver.h"
+#include "uart_driver.h"
 
 static const char *TAG = "MAIN";
 
 // ====== Variables globales ======
-float temp1, temp2, temp3;
-float v0, v1, v2, v3;
+float temp1 = 0, temp2 = 0, temp3 = 0;
+float v0 = 0, v1 = 0, v2 = 0, v3 = 0;
 
 // Semáforo global para proteger el bus I2C
 SemaphoreHandle_t i2c_mutex = NULL;
@@ -30,12 +31,11 @@ void mlx90614_task_safe(void *pvParameter)
         // Tomar control del bus
         if (xSemaphoreTake(i2c_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
         {
-            float temp = read_mlx90614(sensor->addr);
-            *(sensor->temperature_var) = temp;
+            *(sensor->temperature_var) =  read_mlx90614(sensor->addr);
             xSemaphoreGive(i2c_mutex); // Liberar bus
         }
 
-        ESP_LOGI(sensor->tag, "Temp = %.2f °C", *(sensor->temperature_var));
+        //ESP_LOGI(sensor->tag, "Temp = %.2f °C", *(sensor->temperature_var));
         vTaskDelay(pdMS_TO_TICKS(500)); // tiempo entre lecturas
     }
 }
@@ -57,16 +57,40 @@ void ads1115_task_safe(void *pvParameter)
             xSemaphoreGive(i2c_mutex);
         }
 
-        ESP_LOGI("ADS1115", "AIN0=%.3f | AIN1=%.3f | AIN2=%.3f | AIN3=%.3f", v0, v1, v2, v3);
+        //ESP_LOGI("ADS1115", "AIN0=%.3f | AIN1=%.3f | AIN2=%.3f | AIN3=%.3f", v0, v1, v2, v3);
         vTaskDelay(pdMS_TO_TICKS(500));
     }
 }
 
+// ====== Tarea que envía los datos en formato JSON por UART ======
+void uart_json_task(void *pvParameter)
+{
+    char json_buffer[256];
+
+    while (1)
+    {
+        int s1 = digital_input_get_state(0);
+        int s2 = digital_input_get_state(1);
+        int s3 = digital_input_get_state(2);
+
+        // Crear cadena JSON
+        snprintf(json_buffer, sizeof(json_buffer),
+                 "{\"temp1\":%.2f,\"temp2\":%.2f,\"temp3\":%.2f,"
+                 "\"v0\":%.3f,\"v1\":%.3f,\"v2\":%.3f,\"v3\":%.3f,"
+                 "\"inputs\":[%d,%d,%d]}",
+                 temp1, temp2, temp3, v0, v1, v2, v3, s1, s2, s3);
+
+        // Enviar JSON por UART
+        uart_send_string(json_buffer);
+        uart_send_string("\n");  // Importante: cada JSON en una línea
+
+        vTaskDelay(pdMS_TO_TICKS(1000)); // Periodo de envío
+    }
+}
 
 void app_main()
 {
     ESP_ERROR_CHECK(i2c_master_init());
-    
     // Crear semáforo mutex
     i2c_mutex = xSemaphoreCreateMutex();
     if (i2c_mutex == NULL)
@@ -74,6 +98,10 @@ void app_main()
         ESP_LOGE(TAG, "Error al crear el semáforo I2C");
         return;
     }
+
+    // ====== UART ======
+    uart_driver_init();  // Inicialización
+    //xTaskCreate(uart_send_task, "UART_SEND", 4096, NULL, 4, NULL);
 
     // ====== MLX90614 ======
     static mlx90614_t mlx_sensors[] = {
@@ -98,12 +126,8 @@ void app_main()
     ds18b20_sensor_init();
     ds18b20_sensor_start_all();
     
-    while (1) {
-        int s1 = digital_input_get_state(0);
-        int s2 = digital_input_get_state(1);
-        int s3 = digital_input_get_state(2);
+    // ====== Envío JSON UART ======
+    xTaskCreate(uart_json_task, "UART_JSON", 4096, NULL, 4, NULL);
 
-        ESP_LOGI("MAIN", "Entradas digitales: [%d, %d, %d]", s1, s2, s3);
-        vTaskDelay(pdMS_TO_TICKS(1000));
-    }
+    ESP_LOGI(TAG, "Sistema iniciado correctamente");
 }

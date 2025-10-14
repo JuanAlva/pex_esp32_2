@@ -1,4 +1,4 @@
-# Install script for directory: C:/Users/juan_/pex_esp32_2/components/di
+# Install script for directory: C:/Users/juan_/pex_esp32_2/components/digital_inputs
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

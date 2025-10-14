@@ -84,6 +84,7 @@ $<TARGET_FILE:__idf_ds18x20>
 $<TARGET_FILE:__idf_main>
 $<TARGET_FILE:__idf_i2c_driver>
 $<TARGET_FILE:__idf_ads1115_driver>
-$<TARGET_FILE:__idf_di_driver>
+$<TARGET_FILE:__idf_digital_inputs>
 $<TARGET_FILE:__idf_ds18b20_driver>
 $<TARGET_FILE:__idf_mlx90614_driver>
+$<TARGET_FILE:__idf_uart_driver>

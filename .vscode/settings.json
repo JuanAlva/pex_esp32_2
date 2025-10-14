@@ -31,6 +31,9 @@
     "ds18x20.h": "c",
     "ads1115_driver.h": "c",
     "mlx90614_driver.h": "c",
-    "stdio.h": "c"
+    "stdio.h": "c",
+    "uart.h": "c",
+    "uart_driver.h": "c",
+    "inttypes.h": "c"
   }
 }
