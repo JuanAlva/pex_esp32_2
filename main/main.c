@@ -65,7 +65,8 @@ void ads1115_task_safe(void *pvParameter)
 // ====== Tarea que envía los datos en formato JSON por UART ======
 void uart_json_task(void *pvParameter)
 {
-    char json_buffer[256];
+    extern float temp_sensores[];  // Importar variable global del driver DS18B20
+    char json_buffer[512];
 
     while (1)
     {
@@ -73,16 +74,22 @@ void uart_json_task(void *pvParameter)
         int s2 = digital_input_get_state(1);
         int s3 = digital_input_get_state(2);
 
-        // Crear cadena JSON
+        // Crear cadena JSON con MLX90614, ADS1115, DS18B20 y entradas digitales
         snprintf(json_buffer, sizeof(json_buffer),
-                 "{\"temp1\":%.2f,\"temp2\":%.2f,\"temp3\":%.2f,"
-                 "\"v0\":%.3f,\"v1\":%.3f,\"v2\":%.3f,\"v3\":%.3f,"
-                 "\"inputs\":[%d,%d,%d]}",
-                 temp1, temp2, temp3, v0, v1, v2, v3, s1, s2, s3);
+                 "{"
+                 "\"mlx90614\":[%.2f,%.2f,%.2f],"
+                 "\"ds18b20\":[%.2f,%.2f],"
+                 "\"ads1115\":[%.3f,%.3f,%.3f,%.3f],"
+                 "\"inputs\":[%d,%d,%d]"
+                 "}",
+                 temp1, temp2, temp3,         // MLX90614
+                 temp_sensores[0], temp_sensores[1],  // DS18B20
+                 v0, v1, v2, v3,               // ADS1115
+                 s1, s2, s3);                  // Entradas digitales
 
         // Enviar JSON por UART
         uart_send_string(json_buffer);
-        uart_send_string("\n");  // Importante: cada JSON en una línea
+        uart_send_string("\n");
 
         vTaskDelay(pdMS_TO_TICKS(1000)); // Periodo de envío
     }
