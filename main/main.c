@@ -124,6 +124,7 @@ void app_main()
 
     // ====== DS18B20 ======
     ds18b20_sensor_init();
+    vTaskDelay(pdMS_TO_TICKS(1000));
     ds18b20_sensor_start_all();
     
     // ====== Envío JSON UART ======

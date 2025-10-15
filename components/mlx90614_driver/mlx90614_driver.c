@@ -41,17 +41,17 @@ float read_mlx90614(uint8_t addr)
     return tempC;
 }
 
-void mlx90614_task(void *pvParameter)
-{
-    mlx90614_t *sensor = (mlx90614_t *)pvParameter;
-    float temp;
+// void mlx90614_task(void *pvParameter)
+// {
+//     mlx90614_t *sensor = (mlx90614_t *)pvParameter;
+//     float temp;
 
-    while (1)
-    {
-        float temp = read_mlx90614(sensor->addr);
-        *(sensor->temperature_var) = temp;
+//     while (1)
+//     {
+//         float temp = read_mlx90614(sensor->addr);
+//         *(sensor->temperature_var) = temp;
 
-        ESP_LOGI(sensor->tag, "Temp = %.2f °C", temp);
-        vTaskDelay(pdMS_TO_TICKS(500));  // Lectura cada 0.5 s
-    }
-}
+//         ESP_LOGI(sensor->tag, "Temp = %.2f °C", temp);
+//         vTaskDelay(pdMS_TO_TICKS(500));  // Lectura cada 0.5 s
+//     }
+// }

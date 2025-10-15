@@ -9,4 +9,4 @@ typedef struct {
 } mlx90614_t;
 
 float read_mlx90614(uint8_t addr);
-void mlx90614_task(void *pvParameter);
+// void mlx90614_task(void *pvParameter);
